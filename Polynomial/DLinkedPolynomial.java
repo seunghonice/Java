@@ -42,20 +42,37 @@ public class DLinkedPolynomial implements Polynomial {
 
 	@Override
 	public Polynomial padd(Polynomial p) {
-		DLinkedPolynomial addedPoly = new DLinkedPolynomial();
-		DNode<Term> current = poly.getFirstNode();
-		do {
-			addedPoly.addTerm(current.getInfo());
-			current = poly.getNextNode(current);
-		} while (current.getNext() != null);
-		for (int i = 0; i < p.getDegree(); i++) {
-			if (p.getCoefficient(i) != -1) {
-				addedPoly.addTerm(new Term(p.getCoefficient(i), i));
-				break;
-			}
-		}
-		return addedPoly;
-	}
+    	DLinkedPolynomial temp = new DLinkedPolynomial();
+    	Polynomial A = this;
+    	Polynomial B = p;
+    		
+    	int expo_A = A.getDegree();
+    	int expo_B = B.getDegree();
+    	System.out.println("A degree: " + expo_A);
+		System.out.println("B degree: " + expo_B);    	    	
+    	while ( expo_A !=-1 && expo_B !=-1 ) {
+    		
+    		if (expo_A > expo_B) {
+    			if ( A.getCoefficient(expo_A) != 0 ) 
+    			temp.addTerm(new Term(A.getCoefficient(expo_A),expo_A));
+    			expo_A--;
+    			
+    		}
+    		else if (expo_A == expo_B) {
+    			if ( A.getCoefficient(expo_A) != 0 || B.getCoefficient(expo_B) != 0)
+    			temp.addTerm(new Term(A.getCoefficient(expo_A)+B.getCoefficient(expo_B),expo_A));
+    			expo_A--; expo_B--;
+    			
+    		}
+    		else {
+    			if ( B.getCoefficient(expo_B) != 0 )
+    			temp.addTerm(new Term(B.getCoefficient(expo_B),expo_B));
+    			expo_B--;
+    			
+    		}
+    	}
+    	return temp;
+    }
 
 	Term multTerms(Term x, Term y) {
 		return new Term(x.coeff * y.coeff, x.expo + y.expo);
