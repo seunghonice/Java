@@ -1,17 +1,15 @@
+package matrix;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 //Sparse Matrix ADT
 public class SparseMatrix {
 
     // nested class for each non-zero entry in Sparse Matrix
-    class Entry {
+    class Entry {   
         public int row, col, value;
 
         @Override
@@ -93,6 +91,22 @@ public class SparseMatrix {
         return count;
     }
 
+    private int getMaxRow() {
+        int maxRow = 0;
+        for (Entry d: data) {
+            if (d.row > maxRow) maxRow = d.row;
+        }
+        return maxRow;
+    }
+    
+    private int getMaxCol() {
+        int maxCol = 0;
+        for (Entry d: data) {
+            if (d.col > maxCol) maxCol = d.col;
+        }
+        return maxCol;
+    }
+    
     private void put(int row, int col, int value) {
         data[nextSlot++] = new Entry(row, col, value);
     }
@@ -102,36 +116,43 @@ public class SparseMatrix {
      * Assume that the dimensions of two matrices are always compatible.
      */
     public SparseMatrix add(SparseMatrix other) {
-        SparseMatrix matrix = new SparseMatrix(this.rowCount>other.rowCount?this.rowCount:other.rowCount,
-                this.colCount>other.colCount?this.colCount:other.colCount,
-                        countEntryOfMatrices(other));
-        for (Entry thisEntry: this.data) {
+        // new SparseMatrix(rowCount, colCount, entryCount)
+        SparseMatrix matrix = new SparseMatrix(this.rowCount>other.rowCount? this.rowCount:other.rowCount,
+                                               this.colCount>other.colCount? this.colCount:other.colCount,
+                                               countEntryOfMatrices(other));
+        for (Entry thisEntry: data) { // matrix 에  matrixA를 넣는다
             matrix.put(thisEntry.row, thisEntry.col, thisEntry.value);
         }
-        for (Entry otherEntry: other.data) {
-            boolean flag = false;
+        // matrix에 other를 넣는데, row와 col 이 서로 같은 entry를 '먼저' 다 더한다
+        for (int j = 0; j < other.nextSlot; j++) {
             for (int i = 0; i < matrix.nextSlot; i++) {
-                // if each row, col is the same
-                if (matrix.data[i].row == otherEntry.row && matrix.data[i].col == otherEntry.col) {
-                    // if the sum of values is 0
-                    if (matrix.data[i].value + otherEntry.value == 0) {
-                        System.out.print("i: "+ i + ", ");
-                        System.out.println(matrix.data[i].row + " " + matrix.data[i].col + " " +matrix.data[i].value);
-                        System.out.println("matrix.nextSlot: "+matrix.nextSlot);
-                        for (int j = i; j < matrix.nextSlot; j++) {
-                            matrix.data[j] = matrix.data[j+1];
-                        }
+                if (matrix.data[i].row == other.data[j].row && matrix.data[i].col == other.data[j].col) {
+                    if (matrix.data[i].value + other.data[j].value == 0) { // matrix와 other 의 data[i]의 row,col이 같고, a + b = 0 일 때 한 칸씩 땡김 
                         matrix.nextSlot--;
-                    } else {
-                        matrix.data[i].value += otherEntry.value;
+                        for (int k = i; k < matrix.nextSlot; k++) {
+                            matrix.data[k] = matrix.data[k+1];
+                        }
+                    } else { // matrix와 other 의 data[i]의 row,col이 같고, a + b != 0 일 때 값만 더함
+                        matrix.data[i].value += other.data[j].value;
                     }
-                    flag = true;
+                    for (int l = j; l < other.nextSlot-1; l++) { // matrix와 other 의 data[i]의 row,col이 같고, 가 같은 경우의 entry를 matrixB에서 제거
+                        other.data[l] = other.data[l+1];
+                    }
+                    other.nextSlot--;
+                    j-=1;
                 } 
             }
-            if (!flag) {
-                matrix.put(otherEntry.row, otherEntry.col, otherEntry.value);
-                System.out.println("nextSlot after put: " + matrix.nextSlot);
-                System.out.println(otherEntry.row +" "+ otherEntry.col +" "+ otherEntry.value);
+        }
+        // matrixB의 남은 entry를 다 더한다
+        for (int k = 0; k < other.nextSlot; k ++) {
+            boolean isDifferent = true;
+            for (int i = 0; i < matrix.nextSlot; i++) {
+                if (matrix.data[i].row == other.data[k].row && matrix.data[i].col == other.data[k].col) {
+                    isDifferent = false;
+                }
+            }
+            if (isDifferent) { // row col 이 같지 않은 경우
+                matrix.put(other.data[k].row, other.data[k].col, other.data[k].value);
                 for (int j = matrix.nextSlot-1; j > 0; j--) {
                     if ((matrix.data[j].row < matrix.data[j-1].row) ||
                             ((matrix.data[j].row == matrix.data[j-1].row) && matrix.data[j].col < matrix.data[j-1].col)) {
@@ -149,7 +170,7 @@ public class SparseMatrix {
      * Transpose matrix
      */
     public SparseMatrix transpose() {
-        SparseMatrix matrix = new SparseMatrix(rowCount, colCount, entryCount);
+        SparseMatrix matrix = new SparseMatrix(getMaxCol()+1, getMaxRow()+1, entryCount);
         for (int i = 0; i < entryCount; i++) {
             matrix.put(data[i].col, data[i].row, data[i].value);
             for (int j = i; j > 0; j--) {
